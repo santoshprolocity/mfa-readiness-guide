@@ -1,0 +1,378 @@
+<!-- Salesforce MFA Readiness Guide — self-contained SPA. No external data calls; no browser storage. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MFA Readiness Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161D2B; --ink-soft:#3A465C; --muted:#6B7689; --faint:#9AA3B2;
+    --bg:#EEF1F5; --card:#FFFFFF; --line:#E0E5EC; --line-soft:#EDF0F4;
+    --go:#0E7C66; --go-bg:#E5F3EF; --go-line:#BCE0D6;
+    --warn:#B5740B; --warn-bg:#FBF1DF; --warn-line:#EBD3A0;
+    --stop:#B42318; --stop-bg:#FCEDEB; --stop-line:#F0C5BF;
+    --info:#235D9F; --info-bg:#E9F1FA; --info-line:#C3D8F0;
+    --radius:14px; --shadow:0 1px 2px rgba(22,29,43,.06),0 8px 28px rgba(22,29,43,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.55;
+    -webkit-font-smoothing:antialiased;padding:0 16px 64px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;letter-spacing:-.01em;margin:0}
+  a{color:var(--info)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
+    background:#F1F3F7;border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+  pre{background:#11151F;color:#E7ECF4;border-radius:10px;padding:14px 16px;overflow:auto;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.6;margin:10px 0}
+  pre .kw{color:#7FB2FF}
+
+  /* Header / status rail */
+  header{padding:30px 0 14px}
+  .eyebrow{font:600 12px/1 "Space Grotesk";letter-spacing:.16em;text-transform:uppercase;color:var(--go)}
+  header h1{font-size:clamp(26px,5vw,38px);font-weight:700;margin:10px 0 6px}
+  header p.sub{color:var(--muted);margin:0;max-width:54ch}
+  .countdown{display:inline-flex;align-items:baseline;gap:8px;margin-top:18px;
+    background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 16px;box-shadow:var(--shadow)}
+  .countdown b{font:700 17px/1 "Space Grotesk";color:var(--warn)}
+  .countdown span{font-size:13px;color:var(--muted)}
+
+  /* Tier badge */
+  .tier{display:none;align-items:center;gap:10px;margin:16px 0 0}
+  .tier.show{display:flex}
+  .tier .dot{width:10px;height:10px;border-radius:50%}
+  .tier b{font:600 13px/1 "Space Grotesk";letter-spacing:.02em}
+  .tier small{color:var(--muted);font-size:12.5px}
+
+  /* Cards / screens */
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:26px;margin-top:18px;animation:rise .35s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .screen h2{font-size:22px;font-weight:600;margin-bottom:6px}
+  .screen .lede{color:var(--ink-soft);margin:0 0 18px;font-size:15px}
+
+  /* Choice buttons */
+  .choices{display:grid;gap:10px}
+  .choice{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;cursor:pointer;
+    background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:15px 16px;
+    font:inherit;color:var(--ink);transition:.16s}
+  .choice:hover{border-color:var(--go);background:var(--go-bg);transform:translateY(-1px)}
+  .choice .ic{flex:0 0 34px;height:34px;border-radius:9px;display:grid;place-items:center;
+    background:#F0F3F8;font-size:18px}
+  .choice .ct{flex:1}
+  .choice .ct b{display:block;font:600 15px/1.3 "Space Grotesk"}
+  .choice .ct small{color:var(--muted);font-size:13px}
+  .choice .arw{align-self:center;color:var(--faint);font-size:18px}
+
+  /* Steps */
+  ol.steps{list-style:none;counter-reset:s;margin:6px 0 0;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 18px 46px;border-left:2px solid var(--line-soft);
+    margin-left:15px}
+  ol.steps>li:last-child{border-left-color:transparent;padding-bottom:2px}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-16px;top:-2px;width:30px;height:30px;
+    border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;
+    font:600 13px/1 "Space Grotesk"}
+  ol.steps>li h4{font:600 15px/1.35 "Space Grotesk";margin:2px 0 3px}
+  ol.steps>li p{margin:0;color:var(--ink-soft);font-size:14px}
+  ol.steps>li p+p{margin-top:6px}
+
+  ul.plain{margin:6px 0 0;padding-left:18px;color:var(--ink-soft);font-size:14px}
+  ul.plain li{margin:3px 0}
+
+  /* Callouts */
+  .note{border-radius:10px;padding:13px 15px;margin:14px 0 0;font-size:13.5px;border:1px solid}
+  .note b{font-weight:600}
+  .note.go{background:var(--go-bg);border-color:var(--go-line);color:#0A5B4B}
+  .note.warn{background:var(--warn-bg);border-color:var(--warn-line);color:#7A4E06}
+  .note.stop{background:var(--stop-bg);border-color:var(--stop-line);color:#8A1B12}
+  .note.info{background:var(--info-bg);border-color:var(--info-line);color:#194878}
+
+  .tag{display:inline-block;font:600 10.5px/1 "Space Grotesk";letter-spacing:.06em;text-transform:uppercase;
+    padding:4px 8px;border-radius:6px;vertical-align:middle}
+  .tag.req{background:var(--stop-bg);color:var(--stop);border:1px solid var(--stop-line)}
+  .tag.rec{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line)}
+  .tag.ok{background:var(--go-bg);color:var(--go);border:1px solid var(--go-line)}
+  .tag.opt{background:#EEF1F5;color:var(--muted);border:1px solid var(--line)}
+
+  .methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  @media(max-width:560px){.methods{grid-template-columns:1fr}.choice .ct small{font-size:12.5px}}
+  .mcol{border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .mcol h5{font:600 13px/1 "Space Grotesk";margin:0 0 8px;display:flex;align-items:center;gap:7px}
+  .mcol.yes h5{color:var(--go)} .mcol.no h5{color:var(--stop)}
+  .mcol ul{margin:0;padding-left:16px;font-size:13px;color:var(--ink-soft)}
+  .mcol li{margin:2px 0}
+
+  /* Nav */
+  .nav{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+  .btn{font:600 14px/1 "Space Grotesk";border-radius:10px;padding:11px 18px;cursor:pointer;border:1.5px solid transparent;transition:.15s}
+  .btn.ghost{background:#fff;border-color:var(--line);color:var(--ink-soft)}
+  .btn.ghost:hover{border-color:var(--muted)}
+  .btn.solid{background:var(--ink);color:#fff}
+  .btn.solid:hover{background:#000}
+
+  /* progress checkbox on steps */
+  .chk{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .chk input{width:15px;height:15px;accent-color:var(--go)}
+  .done{opacity:.55}
+  .done h4{text-decoration:line-through}
+
+  footer{color:var(--faint);font-size:11.5px;text-align:center;margin-top:26px;line-height:1.6}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Salesforce · Identity &amp; Access</div>
+    <h1>MFA Readiness Guide</h1>
+    <p class="sub">Answer a couple of questions and get the exact steps for <em>your</em> situation before the June–July 2026 enforcement.</p>
+    <div class="countdown" id="cd"><b id="cdNum">–</b><span id="cdTxt">to sandbox enforcement</span></div>
+    <div class="tier" id="tier"><span class="dot" id="tierDot"></span><b id="tierName"></b><small id="tierNote"></small></div>
+  </header>
+  <div id="app"></div>
+  <footer>
+    Reference dates — Sandbox: June&nbsp;22, 2026 (staggered ~7&nbsp;days). Production: privileged July&nbsp;1; all employees July&nbsp;20 (each staggered ~30&nbsp;days).<br>
+    Guidance only; confirm against your org's Setup and Salesforce Help. UI labels can vary slightly by release.
+  </footer>
+</div>
+
+<script>
+/* ---------- environment + env-aware countdown ---------- */
+var env=null, curTier=null, adminMethod=null;
+function daysTo(d){return Math.ceil((new Date(d)-new Date())/86400000);}
+function updateCountdown(){
+  var n=document.getElementById('cdNum'), t=document.getElementById('cdTxt');
+  if(!env){n.textContent='–'; t.textContent='pick sandbox or production to start'; return;}
+  var date, who;
+  if(env==='sandbox'){ date='2026-06-22T00:00:00'; who='sandbox enforcement (Jun 22)'; }
+  else if(curTier==='std'){ date='2026-07-20T00:00:00'; who='production — all employees (Jul 20)'; }
+  else { date='2026-07-01T00:00:00'; who='production — privileged (Jul 1)'; }
+  var d=daysTo(date);
+  if(d>1){n.textContent=d; t.textContent='days to '+who;}
+  else if(d===1){n.textContent='1'; t.textContent='day to '+who;}
+  else if(d===0){n.textContent='Today'; t.textContent=who+' begins';}
+  else{n.textContent='Live'; t.textContent=who+' — rolling out now';}
+}
+updateCountdown();
+
+/* ---------- tier badge ---------- */
+var TIER={
+  prr:{c:'#B42318',n:'Phishing-Resistant MFA required',note:'Passkey or security key only'},
+  std:{c:'#0E7C66',n:'Standard MFA required',note:'Authenticator app is fine'},
+  sso:{c:'#235D9F',n:'Handled at your identity provider',note:'Action sits with your IT team'},
+  none:{c:'#6B7689',n:'Not in scope',note:'API logins are not affected'},
+  admin:{c:'#161D2B',n:'Org administrator',note:'Configure settings + secure your own login'}
+};
+function setTier(k){
+  curTier=k; updateCountdown();
+  var el=document.getElementById('tier');
+  if(!k){el.classList.remove('show');return;}
+  var x=TIER[k];
+  document.getElementById('tierDot').style.background=x.c;
+  document.getElementById('tierName').textContent=x.n;
+  document.getElementById('tierNote').textContent='· '+x.note;
+  el.classList.add('show');
+}
+
+/* ---------- tiny markup helpers ---------- */
+function choice(icon,title,sub,go){
+  return '<button class="choice" onclick="nav(\''+go+'\')"><span class="ic">'+icon+
+    '</span><span class="ct"><b>'+title+'</b><small>'+sub+'</small></span><span class="arw">→</span></button>';
+}
+function steps(arr){
+  return '<ol class="steps">'+arr.map(function(s){
+    return '<li><h4>'+s.h+'</h4>'+(s.p||'')+
+      '<label class="chk"><input type="checkbox" onchange="this.closest(\'li\').classList.toggle(\'done\',this.checked)"> Mark done</label></li>';
+  }).join('')+'</ol>';
+}
+function backRow(){return '<div class="nav"><button class="btn ghost" onclick="back()">← Back</button><button class="btn ghost" onclick="reset()">Start over</button></div>';}
+
+/* ---------- screens ---------- */
+var S={};
+
+S.env=function(){ return {tier:null, html:
+  '<div class="screen"><h2>Which org are you preparing?</h2>'+
+  '<p class="lede">Your deadline — and the countdown above — depends on this.</p>'+
+  '<div class="choices">'+
+  '<button class="choice" onclick="env=\'sandbox\';updateCountdown();nav(\'role\')"><span class="ic">🧪</span><span class="ct"><b>Sandbox</b><small>Enforcement begins Jun 22, 2026 (staggered ~7 days)</small></span><span class="arw">→</span></button>'+
+  '<button class="choice" onclick="env=\'prod\';updateCountdown();nav(\'role\')"><span class="ic">🚀</span><span class="ct"><b>Production</b><small>Privileged Jul 1 · all employees Jul 20 (staggered ~30 days)</small></span><span class="arw">→</span></button>'+
+  '</div></div>'};
+};
+
+S.role=function(){ return {tier:null, html:
+  '<div class="screen"><h2>Who are you in this rollout?</h2>'+
+  '<p class="lede">Pick the line that fits. You can start over anytime.</p>'+
+  '<div class="choices">'+
+  choice('⚙️','I run the Salesforce org','Main admin — I configure org settings and guide everyone else','admin')+
+  choice('🧑‍💻','I just need to set up my own login','A regular user getting ready for the deadline','login')+
+  '</div>'+backRow()+'</div>'};
+};
+
+S.login=function(){ return {tier:null, html:
+  '<div class="screen"><h2>How do you sign in to Salesforce?</h2>'+
+  '<p class="lede">This decides whether the work is on your side or your IT team\'s.</p>'+
+  '<div class="choices">'+
+  choice('🔑','With a Salesforce username &amp; password','I type credentials directly on a Salesforce login page','priv')+
+  choice('🏢','Through my company\'s SSO','Okta, Microsoft Entra, Ping, ADFS, Google, etc.','sso')+
+  choice('🤖','It\'s an integration / API account','A service account that talks to Salesforce, no person logs in','api')+
+  '</div>'+backRow()+'</div>'};
+};
+
+S.priv=function(){ return {tier:null, html:
+  '<div class="screen"><h2>Do you have privileged access?</h2>'+
+  '<p class="lede">Privileged users face the stricter <b>phishing-resistant</b> rule. You qualify if you have the System Administrator profile <em>or any one</em> of these permissions:</p>'+
+  '<ul class="plain"><li>Modify All Data</li><li>View All Data</li><li>Customize Application</li><li>Author Apex</li></ul>'+
+  '<div class="note info">Not sure? Ask your admin, or check Setup → your user → permissions. When in doubt, treat yourself as privileged — it\'s the safer setup.</div>'+
+  '<div class="choices" style="margin-top:16px">'+
+  choice('🛡️','Yes — I\'m an admin / privileged user','Or I\'m not sure (play it safe)','res_priv')+
+  choice('👤','No — I\'m a standard user','None of those permissions, not an admin','res_std')+
+  '</div>'+backRow()+'</div>'};
+};
+
+/* ---- RESULT: privileged user ---- */
+S.res_priv=function(){ return {tier:'prr', html:
+  '<div class="screen"><h2>Set up phishing-resistant MFA <span class="tag req">Required</span></h2>'+
+  '<p class="lede">Authenticator and TOTP apps (Salesforce Authenticator, Google/Microsoft Authenticator), SMS, and email codes will <b>not</b> work for you after enforcement. You need a passkey or a security key.</p>'+
+  steps([
+    {h:'Get your method ready',p:'<p>Use a <b>built-in authenticator</b> — Touch ID (Mac/iPhone) or Windows Hello (fingerprint/face/PIN) — or a <b>physical security key</b> (YubiKey, Google Titan; U2F/WebAuthn). Have the device or key in hand.</p>'},
+    {h:'Protect yourself from lockout first',p:'<p>Open a <b>second login session in another browser</b> and leave it running. Have a backup ready: an admin-generated Temporary Verification Code, or a second admin who can reset you.</p>'},
+    {h:'Register the method',p:'<p>Sign in, then go to your avatar → <b>Settings → Advanced User Details</b> and choose <b>Register</b> next to the built-in authenticator or security key. (You may also be prompted to register at your next login.)</p>'},
+    {h:'Add a second method as backup',p:'<p>Register a second passkey/key (e.g. a spare YubiKey) so a lost device doesn\'t lock you out.</p>'},
+    {h:'Test the real login',p:'<p>Sign out completely, then sign back in using <b>only</b> the new passkey. Registering isn\'t proof — a clean login is.</p>'}
+  ])+
+  '<div class="note warn"><b>Sandbox first, then production.</b> Sandbox passkeys don\'t carry over. After it works in sandbox, re-register in <b>production before July 1</b>.</div>'+
+  '<div class="note stop"><b>Don\'t delete</b> your current verification method until the new passkey is confirmed working.</div>'+
+  backRow()+'</div>'};
+};
+
+/* ---- RESULT: standard user ---- */
+S.res_std=function(){ return {tier:'std', html:
+  '<div class="screen"><h2>Set up MFA <span class="tag req">Required</span></h2>'+
+  '<p class="lede">Any supported MFA method is fine for you. A passkey is the smoothest option and is <span class="tag rec">Recommended</span>, but an authenticator app works too.</p>'+
+  steps([
+    {h:'Pick a method',p:'<p>Easiest: a <b>passkey</b> (Touch ID / Windows Hello). Or a free authenticator app — <b>Salesforce Authenticator</b>, Google Authenticator, or Microsoft Authenticator.</p>'},
+    {h:'Register it',p:'<p>You\'ll be prompted at your next login. To do it now: avatar → <b>Settings → Advanced User Details → Register</b>.</p>'},
+    {h:'Verify it works',p:'<p>Complete one login with the new method so there are no surprises on enforcement day.</p>'}
+  ])+
+  '<div class="note stop"><b>Won\'t count:</b> one-time codes by SMS, email, or phone call do not satisfy the requirement. Use an app or passkey.</div>'+
+  '<div class="note info">Enforcement for standard users: sandbox <b>June 22</b>, production <b>July 20</b> (each staggered ~30 days in production).</div>'+
+  backRow()+'</div>'};
+};
+
+/* ---- RESULT: SSO ---- */
+S.sso=function(){ return {tier:'sso', html:
+  '<div class="screen"><h2>Your MFA lives at your identity provider</h2>'+
+  '<p class="lede">With SSO, Salesforce checks for an MFA signal from your IdP (Okta, Entra, etc.) rather than running MFA itself.</p>'+
+  steps([
+    {h:'Confirm MFA is enforced at the IdP',p:'<p>Your IT/identity team must require a strong MFA method at sign-in. One-time codes via email, SMS, or voice don\'t qualify.</p>'},
+    {h:'If you\'re a privileged user, the bar is higher',p:'<p>The IdP must send a <b>phishing-resistant</b> signal (AMR/ACR) — i.e. a passkey or security key was used. A plain authenticator app isn\'t enough for admins.</p>'},
+    {h:'Know the fallback',p:'<p>If the IdP doesn\'t send the required signal, Salesforce will prompt you to enroll a Salesforce MFA method at login.</p>'}
+  ])+
+  '<div class="note info"><b>Action:</b> this is mostly an IT/identity-team task, not a self-service one. Salesforce can\'t verify or enable it for you — flag it with whoever manages your SSO.</div>'+
+  backRow()+'</div>'};
+};
+
+/* ---- RESULT: integration / API ---- */
+S.api=function(){ return {tier:'none', html:
+  '<div class="screen"><h2>Integration &amp; API accounts <span class="tag ok">No action (usually)</span></h2>'+
+  '<p class="lede">MFA is not enforced on API logins. A service account that authenticates via OAuth Client Credentials or JWT Bearer — with no interactive browser login — is not in scope.</p>'+
+  '<div class="note warn"><b>Two things to confirm:</b></div>'+
+  '<ul class="plain">'+
+  '<li>If this account ever logs in through the <b>browser UI</b> <em>and</em> holds a privileged permission, it <b>is</b> in scope — move it to API-only or expect a phishing-resistant prompt.</li>'+
+  '<li>Separately, traffic from anonymizing VPNs / proxies / high-risk IPs can be blocked for Connected App &amp; API usage. Run these from a stable known IP.</li>'+
+  '</ul>'+
+  backRow()+'</div>'};
+};
+
+/* ---- ADMIN: choose method (asks if hardware keys are an option) ---- */
+S.admin=function(){ return {tier:'admin', html:
+  '<div class="screen"><h2>How will your admins do phishing-resistant MFA?</h2>'+
+  '<p class="lede">Only two method types count for privileged users: a built-in authenticator or a physical security key. Buying hardware keys isn\'t always feasible — pick what fits and I\'ll tailor the checklist and flag the trade-offs.</p>'+
+  '<div class="choices">'+
+  '<button class="choice" onclick="adminMethod=\'builtin\';nav(\'admin_setup\')"><span class="ic">👆</span><span class="ct"><b>Built-in authenticator</b><small>Touch ID / Windows Hello · free, no purchase — but tied to each device</small></span><span class="arw">→</span></button>'+
+  '<button class="choice" onclick="adminMethod=\'key\';nav(\'admin_setup\')"><span class="ic">🔑</span><span class="ct"><b>Physical security keys</b><small>YubiKey / Titan · portable across machines · ~$25–50 each</small></span><span class="arw">→</span></button>'+
+  '<button class="choice" onclick="adminMethod=\'both\';nav(\'admin_setup\')"><span class="ic">🧩</span><span class="ct"><b>Not sure / a mix</b><small>Enable both so every admin is covered whatever device they have</small></span><span class="arw">→</span></button>'+
+  '</div>'+backRow()+'</div>'};
+};
+
+/* ---- ADMIN: tailored setup checklist ---- */
+S.admin_setup=function(){
+  var m=adminMethod;
+  // tailored guidance for section A
+  var pathNote, limits='';
+  if(m==='builtin'){
+    pathNote='<div class="note go"><b>Easiest path:</b> enable box 1, leave box 2 off — nothing to buy. Every admin uses Touch ID / Windows Hello on their own machine.</div>';
+    limits='<div class="note warn"><b>Before you commit to built-in only — its limits:</b>'+
+      '<ul class="plain" style="margin-top:6px">'+
+      '<li><b>Device-bound.</b> The passkey lives on the one computer it\'s registered on; it doesn\'t follow the admin elsewhere.</li>'+
+      '<li><b>Multiple / shared / borrowed machines break it.</b> Logging in from a second laptop, a colleague\'s PC, or a kiosk won\'t work unless that device is registered too.</li>'+
+      '<li><b>Lost / reset / replaced device = locked out.</b> If the machine dies or is wiped, that passkey is gone.</li>'+
+      '<li><b>Needs supporting hardware.</b> The device must have Touch ID or Windows Hello; older machines may not.</li>'+
+      '<li><b>Fix the gap:</b> have each admin register a <b>second</b> method — a passkey on a second device, a security key, or keep a Temporary Verification Code as backup.</li>'+
+      '</ul></div>';
+  } else if(m==='key'){
+    pathNote='<div class="note go"><b>Your path:</b> enable box 2. Box 1 is optional. Keys work on any machine — best for admins who switch computers or use shared devices.</div>';
+    limits='<div class="note warn"><b>Plan for the hardware:</b> budget ~$25–50 per key and order <b>two per admin</b> (one primary, one backup) so a lost key isn\'t a lockout. Allow shipping lead time before the deadline.</div>';
+  } else {
+    pathNote='<div class="note go"><b>Your path:</b> enable boxes 1 <em>and</em> 2. Admins with a Touch ID / Windows Hello device use that for free; anyone on older or shared machines uses a security key.</div>';
+    limits='<div class="note warn"><b>Note on built-in authenticators:</b> they\'re free but <b>device-bound</b> — they don\'t follow an admin to another or shared computer, and a lost/reset device loses the passkey. That\'s exactly why you\'re also enabling security keys as the portable fallback.</div>';
+  }
+  return {tier:'admin', html:
+  '<div class="screen"><h2>Main admin checklist</h2>'+
+  '<p class="lede">First configure the org, then secure your own (privileged) login. Sequence admins <b>before</b> the broader employee rollout.</p>'+
+  '<h3 style="font-size:15px;margin:8px 0 2px;color:var(--ink)">A · Turn on the methods in Setup</h3>'+
+  '<p style="font-size:14px;color:var(--ink-soft);margin:2px 0 8px">Setup → <b>Identity Verification</b>. Tags show what\'s strictly required vs. optional:</p>'+
+  pathNote+
+  steps([
+    {h:'Built-in authenticator (passkey) — Touch ID / Windows Hello <span class="tag req">Enable ≥1 of 1–2</span>',p:'<p>The free phishing-resistant method. Lets users register a passkey on their own device.</p>'},
+    {h:'Physical security key (passkey) — U2F / WebAuthn <span class="tag req">Enable ≥1 of 1–2</span>',p:'<p>Enables YubiKey / Titan-style hardware keys. Portable across machines.</p>'},
+    {h:'Allow passwordless login with passkeys <span class="tag opt">Optional</span>',p:'<p>Convenience only (log in with no password). Not required to satisfy the phishing-resistant rule.</p>'},
+    {h:'Show all permitted verification method options for MFA registration <span class="tag rec">Recommended</span>',p:'<p>So users actually see the passkey / key option when they self-register.</p>'},
+    {h:'Confirm: Require MFA for all direct UI logins to your Salesforce org <span class="tag req">Mandatory</span>',p:'<p>The org-wide MFA master switch — must be on.</p>'}
+  ])+
+  '<div class="note info"><b>Bottom line:</b> you must enable <b>at least one</b> of boxes 1–2 (the actual phishing-resistant methods) and box 5. Boxes 3–4 are convenience/visibility, not pass/fail.</div>'+
+  limits+
+  '<h3 style="font-size:15px;margin:18px 0 2px;color:var(--ink)">B · Find who needs phishing-resistant MFA</h3>'+
+  '<p style="font-size:14px;color:var(--ink-soft);margin:2px 0 6px">Anyone with the System Administrator profile, or Modify All Data / View All Data / Customize Application / Author Apex. Run this in Developer Console → Query Editor:</p>'+
+  '<pre><span class="kw">SELECT</span> Assignee.Name, Assignee.Username, Assignee.Profile.Name,\n'+
+  '       PermissionSet.Label, PermissionSet.IsOwnedByProfile,\n'+
+  '       PermissionSet.PermissionsModifyAllData,\n'+
+  '       PermissionSet.PermissionsViewAllData,\n'+
+  '       PermissionSet.PermissionsCustomizeApplication,\n'+
+  '       PermissionSet.PermissionsAuthorApex\n'+
+  '<span class="kw">FROM</span> PermissionSetAssignment\n'+
+  '<span class="kw">WHERE</span> PermissionSet.PermissionsModifyAllData = <span class="kw">true</span>\n'+
+  '   <span class="kw">OR</span> PermissionSet.PermissionsViewAllData = <span class="kw">true</span>\n'+
+  '   <span class="kw">OR</span> PermissionSet.PermissionsCustomizeApplication = <span class="kw">true</span>\n'+
+  '   <span class="kw">OR</span> PermissionSet.PermissionsAuthorApex = <span class="kw">true</span>\n'+
+  '<span class="kw">ORDER BY</span> Assignee.Profile.Name, Assignee.Name</pre>'+
+  '<div class="note info">Review the list: privileged permissions on sales/marketing/integration profiles are often unnecessary. Removing them shrinks the phishing-resistant population and cuts risk.</div>'+
+  '<h3 style="font-size:15px;margin:18px 0 2px;color:var(--ink)">C · Protect against lockout</h3>'+
+  '<ul class="plain">'+
+  '<li>Register <b>at least two</b> phishing-resistant methods per admin as backup.</li>'+
+  '<li>Before testing your own: keep a second session open and generate a Temporary Verification Code as a fallback.</li>'+
+  '<li>If you use SSO, MFA must be enforced at the IdP — Salesforce won\'t do it for you.</li>'+
+  '</ul>'+
+  '<h3 style="font-size:15px;margin:18px 0 2px;color:var(--ink)">D · Pilot, then communicate</h3>'+
+  '<ul class="plain">'+
+  '<li>Validate phishing-resistant login on <b>your own account in sandbox</b> first (sign out, sign back in with the passkey).</li>'+
+  '<li>Then have the other admins do the same in sandbox.</li>'+
+  '<li>Re-register everyone in <b>production before July 1</b>; run the broad employee campaign toward July 20.</li>'+
+  '</ul>'+
+  '<div class="note go"><b>Your own login still needs a passkey.</b> As a privileged user you\'re in the strictest tier — finish your personal setup, don\'t just flip the org switches.</div>'+
+  backRow()+'</div>'};
+};
+
+/* ---------- router ---------- */
+var stack=['env'];
+function render(){
+  var key=stack[stack.length-1];
+  var out=S[key]();
+  setTier(out.tier);
+  document.getElementById('app').innerHTML=out.html;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function nav(k){ stack.push(k); render(); }
+function back(){ if(stack.length>1){stack.pop();} render(); }
+function reset(){ env=null; stack=['env']; render(); }
+render();
+</script>
