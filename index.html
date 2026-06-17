@@ -233,7 +233,7 @@ S.res_priv=function(){ return {tier:'prr', html:
   '<div class="screen"><h2>Set up phishing-resistant MFA <span class="tag req">Required</span></h2>'+
   '<p class="lede">Authenticator and TOTP apps (Salesforce Authenticator, Google/Microsoft Authenticator), SMS, and email codes will <b>not</b> work for you after enforcement. You need a passkey or a security key.</p>'+
   steps([
-    {h:'Get your method ready',p:'<p>Use a <b>built-in authenticator</b> — Touch ID (Mac/iPhone) or Windows Hello (fingerprint/face/PIN) — or a <b>physical security key</b> (YubiKey, Google Titan; U2F/WebAuthn). Have the device or key in hand.</p>'},
+    {h:'Get your method ready',p:'<p>Use a <b>built-in authenticator</b> — Touch ID / Windows Hello / Face ID — or a <b>physical security key</b> (YubiKey / Titan; U2F/WebAuthn). Have the device or key in hand.</p>'},
     {h:'Protect yourself from lockout first',p:'<p>Open a <b>second login session in another browser</b> and leave it running. Have a backup ready: an admin-generated Temporary Verification Code, or a second admin who can reset you.</p>'},
     {h:'Register the method',p:'<p>Sign in, then go to your avatar → <b>Settings → Advanced User Details</b> and choose <b>Register</b> next to the built-in authenticator or security key. (You may also be prompted to register at your next login.)</p>'},
     {h:'Add a second method as backup',p:'<p>Register a second passkey/key (e.g. a spare YubiKey) so a lost device doesn\'t lock you out.</p>'},
@@ -286,10 +286,10 @@ S.api=function(){ return {tier:'none', html:
 /* ---- ADMIN: choose method (asks if hardware keys are an option) ---- */
 S.admin=function(){ return {tier:'admin', html:
   '<div class="screen"><h2>How will your admins do phishing-resistant MFA?</h2>'+
-  '<p class="lede">Only two method types count for privileged users: a built-in authenticator or a physical security key. Buying hardware keys isn\'t always feasible — pick what fits and I\'ll tailor the checklist and flag the trade-offs.</p>'+
+  '<p class="lede">Salesforce provides two phishing-resistant methods: a built-in authenticator or a physical security key. Buying hardware isn\'t always feasible — pick what fits and I\'ll tailor the checklist and flag the trade-offs.</p>'+
   '<div class="choices">'+
-  '<button class="choice" onclick="adminMethod=\'builtin\';nav(\'admin_setup\')"><span class="ic">👆</span><span class="ct"><b>Built-in authenticator</b><small>Touch ID / Windows Hello · free, no purchase — but tied to each device</small></span><span class="arw">→</span></button>'+
-  '<button class="choice" onclick="adminMethod=\'key\';nav(\'admin_setup\')"><span class="ic">🔑</span><span class="ct"><b>Physical security keys</b><small>YubiKey / Titan · portable across machines · ~$25–50 each</small></span><span class="arw">→</span></button>'+
+  '<button class="choice" onclick="adminMethod=\'builtin\';nav(\'admin_setup\')"><span class="ic">👆</span><span class="ct"><b>Built-in authenticator</b><small>Touch ID / Windows Hello / Face ID · free, no purchase — but tied to one device</small></span><span class="arw">→</span></button>'+
+  '<button class="choice" onclick="adminMethod=\'key\';nav(\'admin_setup\')"><span class="ic">🔑</span><span class="ct"><b>Physical security key</b><small>YubiKey / Titan · portable across machines · ~$25–50 each</small></span><span class="arw">→</span></button>'+
   '<button class="choice" onclick="adminMethod=\'both\';nav(\'admin_setup\')"><span class="ic">🧩</span><span class="ct"><b>Not sure / a mix</b><small>Enable both so every admin is covered whatever device they have</small></span><span class="arw">→</span></button>'+
   '</div>'+backRow()+'</div>'};
 };
@@ -313,8 +313,8 @@ S.admin_setup=function(){
     pathNote='<div class="note go"><b>Your path:</b> enable box 2. Box 1 is optional. Keys work on any machine — best for admins who switch computers or use shared devices.</div>';
     limits='<div class="note warn"><b>Plan for the hardware:</b> budget ~$25–50 per key and order <b>two per admin</b> (one primary, one backup) so a lost key isn\'t a lockout. Allow shipping lead time before the deadline.</div>';
   } else {
-    pathNote='<div class="note go"><b>Your path:</b> enable boxes 1 <em>and</em> 2. Admins with a Touch ID / Windows Hello device use that for free; anyone on older or shared machines uses a security key.</div>';
-    limits='<div class="note warn"><b>Note on built-in authenticators:</b> they\'re free but <b>device-bound</b> — they don\'t follow an admin to another or shared computer, and a lost/reset device loses the passkey. That\'s exactly why you\'re also enabling security keys as the portable fallback.</div>';
+    pathNote='<div class="note go"><b>Your path:</b> enable boxes 1 <em>and</em> 2. Admins with a Touch ID / Windows Hello / Face ID device use that for free; anyone on older or shared machines uses a security key.</div>';
+    limits='<div class="note warn"><b>Note on built-in authenticators:</b> they\'re free but <b>device-bound</b> — Salesforce\'s own docs note they work only on a single device, so they don\'t follow an admin to another or shared computer, and a lost/reset device loses the passkey. A security key is the portable fallback.</div>';
   }
   return {tier:'admin', html:
   '<div class="screen"><h2>Main admin checklist</h2>'+
